@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<title>Character list</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="">
+<style>
+</style>
+<script src="BloggerScript.js"></script>
+<script src="storage_manipulation.js"></script>
+<script src="pagination.js"></script>
+
+<body>
+
+<div class='anilist relations' data-host='anilist-bt.blogspot.com' data-label='Relations/Solo Leveling' data-pagination='true' data-perpage='4'></div>
+
+<div class='anilist staff' data-host='anilist-bt.blogspot.com' data-label='Staff/Solo Leveling' data-pagination='true' data-perpage='4'>
+
+<div class='anilist recommendation' data-host='anilist-bt.blogspot.com' data-label='Recommendation/Solo Leveling' data-pagination='true' data-perpage='4'>
+
+
+<script type='text/javascript'>
+    /*<![CDATA[  */
+  
+  
+  (function (a, b) {
+function isHtml(e, type = '') {
+    let html = '';
+
+    if (e.length != 0) {
+        e.forEach((post) => {
+            let title = post.title,
+                link = post.link,
+                image = post.image,
+                mediaType = post.label.find(post => ['TV', 'Movie', 'OVA', 'ONA', 'Manga', 'Light Novel'].includes(post)) || 'Unknown',
+                status = post.label.find(post => ['Releasing', 'Finished', 'Hiatus'].includes(post)) || 'N/A';
+
+            if (type === 'staff') {
+                let name = post.title,
+                    role = post.label.find(l => l !== 'Staff' && l !== 'Solo Leveling') || '';
+
+                html += `
+<div class="role-card view-staff small">
+  <div class="staff">
+    <a href="${link}" class="cover" style="background-image: url(${image});"></a>
+    <a href="${link}" class="content">
+      <div class="name">${name}</div>
+      <div class="role">${role}</div>
+    </a>
+  </div>
+</div>
+`;
+            } else {
+                html += `
+<div class="media-preview-card small">
+  <a href="${link}" class="cover" data-src="${image}" style="background-image: url(${image});" lazy="loaded">
+    <div class="image-text"><div>Source</div></div>
+  </a>
+  <div class="content">
+    <div class="info-header"><div>Source</div></div>
+    <a href="${link}" class="title">${title}</a>
+    <div class="info">${mediaType} · ${status}</div>
+  </div>
+</div>
+`;
+            }
+        });
+    }
+
+    return html;
+}
+
+  
+    let chapterElement = a.querySelectorAll('.anilist'),
+      book = new StorageManipulation('anilist', 'sessionStorage');
+  
+    if (chapterElement.length > 0) {
+      chapterElement.forEach(element => {
+        let x = new BloggerSitemap({
+            'host': 'anilist-bt.blogspot.com',
+            'noImage': 'https://shinigami03.com/wp-content/uploads/2023/02/THUMBNAILAE.jpg',
+            'sizeImage': 's150',
+          }),
+          dataLabel = element.dataset.label,
+          dataPagination = element.dataset.pagination,
+          dataPerPage = element.dataset.perpage,
+          chapterArray,
+          myPagination,
+          paginationElement;
+  
+        dataLabel && (x.config.label = dataLabel);
+        dataPagination == 'true' && (x.config.firstContent = true);
+  
+        function createItem(e) {
+          let {
+            totalPosts,
+            posts,
+            completed
+          } = e;
+          console.log(e);
+  
+          // Tentukan tipe berdasarkan data-label
+          let type = '';
+          if ((element.dataset.label || '').toLowerCase().startsWith('staff')) {
+            type = 'staff';
+          }
+  
+          if (dataPagination == 'true') {
+            if (totalPosts != posts.length || completed) {
+              let firstPosts = posts.slice(0, dataPerPage);
+              element.innerHTML = isHtml(firstPosts, type);
+            }
+  
+            myPagination = new Pagination({
+              'callback': function (main, current) {
+                if (chapterArray || current == 1) {
+  
+                  if (paginationElement && 'main' in paginationElement) {
+                    paginationElement.main.remove();
+                  }
+  
+                  paginationElement = {
+                    main,
+                    current
+                  }
+  
+                  if (chapterArray)
+                    element.innerHTML = isHtml(chapterArray[current - 1].items, type);
+  
+                  element.appendChild(main);
+                } else {
+                  alert('error');
+                }
+              }
+            });
+            myPagination.arrayToPage(totalPosts, dataPerPage, true);
+  
+            if (completed)
+              chapterArray = myPagination.arrayToPage(posts, dataPerPage);
+          } else {
+            let x = isHtml(posts, type);
+            element.innerHTML = x;
+          };
+  
+          if (completed) {
+            let xx = posts.map(({
+              title,
+              link,
+              updated,
+              published,
+              date,
+              image,
+              label,
+              comments_count
+            }) => {
+              return {
+                title,
+                link,
+                updated,
+                published,
+                date,
+                image,
+                label,
+                comments_count
+              }
+            });
+            book.add({
+              'id': dataLabel,
+              'items': {
+                'posts': xx,
+                'totalPosts': totalPosts,
+                'completed': completed
+              }
+            });
+          }
+        }
+  
+        let checkBook = book.find('id', dataLabel);
+        if (checkBook.item) {
+          createItem(checkBook.item.items);
+        } else {
+          x.run(createItem);
+        }
+        console.log(book.get());
+      });
+    }
+  })(document, window);
+  
+    /*]]>*/
+  </script>
+</body>
+</html>

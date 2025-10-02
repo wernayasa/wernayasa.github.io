@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<title>Character list</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="">
+<!-- Tambahkan Tailwind CSS dan Flowbite CDN -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+
+<body>
+<form id="fetch-form" autocomplete="off">
+  <label>
+    Type:
+    <select id="media-type" class="border rounded px-2 py-1 ml-1">
+      <option value="ANIME" selected>Anime</option>
+      <option value="MANGA">Manga</option>
+    </select>
+  </label>
+  <br>
+  <label>
+    <span id="search-label">Search Anime Title:</span>
+    <div class="relative">
+      <input type="text" id="anime-title" placeholder="Type anime title..." autocomplete="off" class="input input-bordered w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" data-dropdown-toggle="dropdown-suggestions">
+      <!-- Dropdown suggestions menggunakan Flowbite -->
+      <div id="dropdown-suggestions" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-full absolute mt-1">
+        <ul id="suggestion-list" class="py-2 text-sm text-gray-700 max-h-60 overflow-y-auto" aria-labelledby="anime-title">
+          <!-- Suggestions will be injected here -->
+        </ul>
+      </div>
+    </div>
+  </label>
+  <br>
+  <label>
+    <span id="id-label">AniList Media ID:</span>
+    <input type="number" id="media-id" required placeholder="e.g. 131573">
+  </label>
+  <button type="submit">Fetch Character List</button>
+</form>
+<!-- Tambahkan tombol dan textarea untuk copy HTML -->
+<div class="my-4">
+  <button id="copy-html-btn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-2">Copy HTML Output</button>
+  <textarea id="html-output" class="w-full border rounded p-2" rows="10" readonly placeholder="HTML output will appear here..."></textarea>
+</div>
+<div id="anime-info"></div>
+<div id="character-list"></div>
+
+<script>
+// Fungsi untuk mengambil URL gambar dari objek API
+function getImageUrl(obj) {
+  return obj?.image?.large || obj?.image?.medium || '';
+}
+
+// Render karakter dari data API
+function renderCharacterList(data) {
+  const container = document.getElementById('character-list');
+  if (!container) return;
+  if (!data || !Array.isArray(data)) {
+    container.innerHTML = '<div>No data found.</div>';
+    return;
+  }
+  container.innerHTML = data.map(item => {
+    const karakter = item.node || {};
+    const pengisi = (item.voiceActors && item.voiceActors[0]) || {};
+    return `
+      <div class="role-card">
+        <div class="character">
+          <a href="https://anilist.co/character/${karakter.id}" target="_blank">
+            <img class="cover-img" src="${getImageUrl(karakter)}" alt="${karakter.name?.full || ''}">
+          </a>
+          <div class="name">${karakter.name?.full || ''}</div>
+          <div class="role">${item.role || ''}</div>
+        </div>
+        <div class="staff">
+          ${pengisi.id ? `
+          <a href="https://anilist.co/staff/${pengisi.id}" target="_blank">
+            <img class="cover-img" src="${getImageUrl(pengisi)}" alt="${pengisi.name?.full || ''}">
+          </a>
+          <div class="name">${pengisi.name?.full || ''}</div>
+          <div class="role">${pengisi.languageV2 || ''}</div>
+          ` : '<div class="name">No VA</div>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Render informasi anime dari data API
+function renderAnimeInfo(media, type) {
+  const container = document.getElementById('anime-info');
+  if (!container) return;
+  if (!media) {
+    container.innerHTML = '<div>No info found.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;">
+      <img src="${media.coverImage?.large || media.coverImage?.medium || ''}" alt="${media.title?.romaji || ''}" style="width:180px;border-radius:8px;">
+      <div>
+        <h2>${media.title?.romaji || ''} (${media.title?.native || ''})</h2>
+        <div><b>Type:</b> ${media.format || ''}</div>
+        <div><b>Status:</b> ${media.status || ''}</div>
+        ${type === 'MANGA' ? `
+          <div><b>Chapters:</b> ${media.chapters || '-'}</div>
+          <div><b>Volumes:</b> ${media.volumes || '-'}</div>
+        ` : `
+          <div><b>Episodes:</b> ${media.episodes || '-'}</div>
+          <div><b>Duration:</b> ${media.duration ? media.duration + ' min' : '-'}</div>
+          <div><b>Season:</b> ${media.season || ''} ${media.seasonYear || ''}</div>
+        `}
+        <div><b>Average Score:</b> ${media.averageScore || '-'}</div>
+        <div><b>Popularity:</b> ${media.popularity || '-'}</div>
+        <div><b>Tags:</b> ${media.tags?.map(t=>t.name).join(', ')}</div>
+        <div><b>Genres:</b> ${media.genres?.join(', ')}</div>
+        <div><b>Summary:</b> <span>${media.description || ''}</span></div>
+        ${media.trailer && type !== 'MANGA' ? `
+          <div><b>Trailer:</b> <a href="https://www.youtube.com/watch?v=${media.trailer.id}" target="_blank">${media.trailer.site} (${media.trailer.id})</a></div>
+        ` : ''}
+        <div><b>Watch:</b> <a href="https://anilist.co/${type.toLowerCase()}/${media.id}" target="_blank">AniList Page</a></div>
+      </div>
+    </div>
+    <div>
+      <h3>Status Distribution</h3>
+      <div>${media.stats?.statusDistribution?.map(s => `${s.status}: ${s.amount}`).join(' | ') || '-'}</div>
+      <h3>Score Distribution</h3>
+      <div>${media.stats?.scoreDistribution?.map(s => `${s.score}: ${s.amount}`).join(' | ') || '-'}</div>
+    </div>
+    <div>
+      <h3>Relations</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${media.relations?.edges?.map(rel => `
+          <div style="border:1px solid #ccc;padding:5px 10px;border-radius:6px;">
+            <a href="https://anilist.co/${(rel.node?.type || 'ANIME').toLowerCase()}/${rel.node?.id}" target="_blank">
+              ${rel.node?.title?.romaji || ''} (${rel.relationType})
+            </a>
+          </div>
+        `).join('') || '-'
+        }
+      </div>
+    </div>
+    <div>
+      <h3>Recommendations</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${media.recommendations?.nodes?.map(rec => `
+          <div style="border:1px solid #ccc;padding:5px 10px;border-radius:6px;">
+            <a href="https://anilist.co/${(rec.mediaRecommendation?.type || 'ANIME').toLowerCase()}/${rec.mediaRecommendation?.id}" target="_blank">
+              ${rec.mediaRecommendation?.title?.romaji || ''}
+            </a> (Score: ${rec.rating})
+          </div>
+        `).join('') || '-'
+        }
+      </div>
+    </div>
+    <div>
+      <h3>Staff</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${media.staff?.edges?.slice(0,10).map(staff => `
+          <div style="border:1px solid #ccc;padding:5px 10px;border-radius:6px;min-width:120px;">
+            <a href="https://anilist.co/staff/${staff.node?.id}" target="_blank">
+              <img src="${staff.node?.image?.large || staff.node?.image?.medium || ''}" alt="${staff.node?.name?.full || ''}" style="width:40px;height:40px;object-fit:cover;border-radius:50%;">
+              <div>${staff.node?.name?.full || ''}</div>
+            </a>
+            <div style="font-size:0.9em;color:#555;">${staff.role || ''}</div>
+          </div>
+        `).join('') || '-'
+        }
+      </div>
+    </div>
+  `;
+  // di akhir fungsi:
+  updateHtmlOutput();
+}
+
+// Fetch data karakter dari API AniList
+async function fetchCharacterList(mediaId, type) {
+  if (!mediaId || isNaN(Number(mediaId))) {
+    document.getElementById('character-list').innerHTML = '<div>Invalid Media ID.</div>';
+    return;
+  }
+  type = type || currentMediaType;
+  const query = `
+    query ($id: Int, $type: MediaType) {
+      Media(id: $id, type: $type) {
+        id
+        title { romaji native }
+        format
+        status
+        episodes
+        chapters
+        volumes
+        duration
+        season
+        seasonYear
+        averageScore
+        popularity
+        genres
+        tags { name }
+        description(asHtml: false)
+        coverImage { large medium }
+        trailer { id site }
+        stats {
+          statusDistribution { status amount }
+          scoreDistribution { score amount }
+        }
+        relations {
+          edges {
+            relationType
+            node {
+              id
+              title { romaji }
+              type
+            }
+          }
+        }
+        recommendations(sort: RATING_DESC, perPage: 10) {
+          nodes {
+            rating
+            mediaRecommendation {
+              id
+              title { romaji }
+              type
+            }
+          }
+        }
+        staff(perPage: 10) {
+          edges {
+            role
+            node {
+              id
+              name { full }
+              image { large medium }
+            }
+          }
+        }
+        characters(sort: [ROLE, RELEVANCE, ID], perPage: 25) {
+          edges {
+            role
+            node {
+              id
+              name { full }
+              image { large medium }
+            }
+            voiceActors(language: JAPANESE) {
+              id
+              name { full }
+              languageV2
+              image { large medium }
+            }
+          }
+        }
+        chapters
+        volumes
+      }
+    }
+  `;
+  const variables = { id: Number(mediaId), type };
+  try {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ query, variables })
+    });
+    const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      document.getElementById('character-list').innerHTML =
+        `<div>Error: ${json.errors[0].message}</div>`;
+      document.getElementById('anime-info').innerHTML = '';
+      return;
+    }
+    const media = json?.data?.Media;
+    renderAnimeInfo(media, type);
+    const edges = media?.characters?.edges || [];
+    renderCharacterList(edges);
+  } catch (e) {
+    document.getElementById('character-list').innerHTML = '<div>Error fetching data.</div>';
+    document.getElementById('anime-info').innerHTML = '';
+    console.error(e);
+  }
+}
+
+// Live search anime/manga title with Flowbite dropdown
+const mediaTypeSelect = document.getElementById('media-type');
+const animeTitleInput = document.getElementById('anime-title');
+const suggestionList = document.getElementById('suggestion-list');
+const dropdownSuggestions = document.getElementById('dropdown-suggestions');
+const searchLabel = document.getElementById('search-label');
+const idLabel = document.getElementById('id-label');
+let debounceTimeout = null;
+let currentMediaType = 'ANIME';
+
+// Update label dan placeholder sesuai tipe
+mediaTypeSelect.addEventListener('change', function() {
+  currentMediaType = mediaTypeSelect.value;
+  if (currentMediaType === 'MANGA') {
+    searchLabel.textContent = 'Search Manga Title:';
+    animeTitleInput.placeholder = 'Type manga title...';
+    idLabel.textContent = 'AniList Manga ID:';
+    animeTitleInput.value = '';
+    document.getElementById('media-id').value = '';
+    document.getElementById('anime-info').innerHTML = '';
+    document.getElementById('character-list').innerHTML = '';
+  } else {
+    searchLabel.textContent = 'Search Anime Title:';
+    animeTitleInput.placeholder = 'Type anime title...';
+    idLabel.textContent = 'AniList Media ID:';
+    animeTitleInput.value = '';
+    document.getElementById('media-id').value = '';
+    document.getElementById('anime-info').innerHTML = '';
+    document.getElementById('character-list').innerHTML = '';
+  }
+  dropdownSuggestions.classList.add('hidden');
+  suggestionList.innerHTML = '';
+});
+
+animeTitleInput.addEventListener('input', function() {
+  const query = animeTitleInput.value.trim();
+  if (debounceTimeout) clearTimeout(debounceTimeout);
+  if (query.length < 2) {
+    dropdownSuggestions.classList.add('hidden');
+    suggestionList.innerHTML = '';
+    return;
+  }
+  debounceTimeout = setTimeout(() => {
+    fetchAnimeSuggestions(query, currentMediaType);
+  }, 300);
+});
+
+async function fetchAnimeSuggestions(search, type) {
+  const query = `
+    query ($search: String, $type: MediaType) {
+      Page(perPage: 8) {
+        media(search: $search, type: $type, sort: [POPULARITY_DESC]) {
+          id
+          title { romaji native }
+          coverImage { medium }
+        }
+      }
+    }
+  `;
+  try {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ query, variables: { search, type } })
+    });
+    const json = await res.json();
+    const results = json?.data?.Page?.media || [];
+    showSuggestions(results);
+  } catch (e) {
+    dropdownSuggestions.classList.add('hidden');
+    suggestionList.innerHTML = '';
+  }
+}
+
+function showSuggestions(animeList) {
+  if (!animeList.length) {
+    dropdownSuggestions.classList.add('hidden');
+    suggestionList.innerHTML = '';
+    return;
+  }
+  suggestionList.innerHTML = animeList.map(anime => `
+    <li class="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-gray-100" data-id="${anime.id}">
+      <img src="${anime.coverImage?.medium || ''}" alt="" class="w-8 h-11 object-cover rounded">
+      <span>${anime.title.romaji || ''} ${anime.title.native ? '('+anime.title.native+')' : ''}</span>
+    </li>
+  `).join('');
+  dropdownSuggestions.classList.remove('hidden');
+}
+
+// Pilih suggestion
+suggestionList.addEventListener('mousedown', function(e) {
+  let li = e.target;
+  while (li && li.tagName !== 'LI') li = li.parentElement;
+  if (!li) return;
+  const id = li.getAttribute('data-id');
+  const title = li.querySelector('span').textContent;
+  document.getElementById('media-id').value = id;
+  animeTitleInput.value = title;
+  dropdownSuggestions.classList.add('hidden');
+  suggestionList.innerHTML = '';
+  // Otomatis fetch detail anime
+  document.getElementById('character-list').innerHTML = 'Loading...';
+  fetchCharacterList(id, currentMediaType);
+});
+
+// Hide suggestion jika klik di luar
+document.addEventListener('mousedown', function(e) {
+  if (!animeTitleInput.contains(e.target) && !dropdownSuggestions.contains(e.target)) {
+    dropdownSuggestions.classList.add('hidden');
+  }
+});
+
+// Handle form submit
+document.getElementById('fetch-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const mediaId = document.getElementById('media-id').value.trim();
+  if (mediaId && !isNaN(Number(mediaId))) {
+    document.getElementById('character-list').innerHTML = 'Loading...';
+    fetchCharacterList(mediaId, currentMediaType);
+  } else {
+    document.getElementById('character-list').innerHTML = '<div>Invalid Media ID.</div>';
+  }
+});
+
+// Fungsi untuk menggabungkan hasil info + karakter menjadi satu HTML
+function getFullHtmlOutput() {
+  const info = document.getElementById('anime-info').innerHTML;
+  const chars = document.getElementById('character-list').innerHTML;
+  return `<div class="anilist-post">\n${info}\n${chars}\n</div>`;
+}
+
+// Tampilkan HTML ke textarea saat data selesai di-fetch
+function updateHtmlOutput() {
+  document.getElementById('html-output').value = getFullHtmlOutput();
+}
+
+// Modifikasi renderAnimeInfo dan renderCharacterList agar update textarea setiap kali render
+function renderAnimeInfo(media, type) {
+  const container = document.getElementById('anime-info');
+  if (!container) return;
+  if (!media) {
+    container.innerHTML = '<div>No info found.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;">
+      <img src="${media.coverImage?.large || media.coverImage?.medium || ''}" alt="${media.title?.romaji || ''}" style="width:180px;border-radius:8px;">
+      <div>
+        <h2>${media.title?.romaji || ''} (${media.title?.native || ''})</h2>
+        <div><b>Type:</b> ${media.format || ''}</div>
+        <div><b>Status:</b> ${media.status || ''}</div>
+        ${type === 'MANGA' ? `
+          <div><b>Chapters:</b> ${media.chapters || '-'}</div>
+          <div><b>Volumes:</b> ${media.volumes || '-'}</div>
+        ` : `
+          <div><b>Episodes:</b> ${media.episodes || '-'}</div>
+          <div><b>Duration:</b> ${media.duration ? media.duration + ' min' : '-'}</div>
+          <div><b>Season:</b> ${media.season || ''} ${media.seasonYear || ''}</div>
+        `}
+        <div><b>Average Score:</b> ${media.averageScore || '-'}</div>
+        <div><b>Popularity:</b> ${media.popularity || '-'}</div>
+        <div><b>Tags:</b> ${media.tags?.map(t=>t.name).join(', ')}</div>
+        <div><b>Genres:</b> ${media.genres?.join(', ')}</div>
+        <div><b>Summary:</b> <span>${media.description || ''}</span></div>
+        ${media.trailer && type !== 'MANGA' ? `
+          <div><b>Trailer:</b> <a href="https://www.youtube.com/watch?v=${media.trailer.id}" target="_blank">${media.trailer.site} (${media.trailer.id})</a></div>
+        ` : ''}
+        <div><b>Watch:</b> <a href="https://anilist.co/${type.toLowerCase()}/${media.id}" target="_blank">AniList Page</a></div>
+      </div>
+    </div>
+    <div>
+      <h3>Status Distribution</h3>
+      <div>${media.stats?.statusDistribution?.map(s => `${s.status}: ${s.amount}`).join(' | ') || '-'}</div>
+      <h3>Score Distribution</h3>
+      <div>${media.stats?.scoreDistribution?.map(s => `${s.score}: ${s.amount}`).join(' | ') || '-'}</div>
+    </div>
+    <div>
+      <h3>Relations</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${media.relations?.edges?.map(rel => `
+          <div style="border:1px solid #ccc;padding:5px 10px;border-radius:6px;">
+            <a href="https://anilist.co/${(rel.node?.type || 'ANIME').toLowerCase()}/${rel.node?.id}" target="_blank">
+              ${rel.node?.title?.romaji || ''} (${rel.relationType})
+            </a>
+          </div>
+        `).join('') || '-'
+        }
+      </div>
+    </div>
+    <div>
+      <h3>Recommendations</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${media.recommendations?.nodes?.map(rec => `
+          <div style="border:1px solid #ccc;padding:5px 10px;border-radius:6px;">
+            <a href="https://anilist.co/${(rec.mediaRecommendation?.type || 'ANIME').toLowerCase()}/${rec.mediaRecommendation?.id}" target="_blank">
+              ${rec.mediaRecommendation?.title?.romaji || ''}
+            </a> (Score: ${rec.rating})
+          </div>
+        `).join('') || '-'
+        }
+      </div>
+    </div>
+    <div>
+      <h3>Staff</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${media.staff?.edges?.slice(0,10).map(staff => `
+          <div style="border:1px solid #ccc;padding:5px 10px;border-radius:6px;min-width:120px;">
+            <a href="https://anilist.co/staff/${staff.node?.id}" target="_blank">
+              <img src="${staff.node?.image?.large || staff.node?.image?.medium || ''}" alt="${staff.node?.name?.full || ''}" style="width:40px;height:40px;object-fit:cover;border-radius:50%;">
+              <div>${staff.node?.name?.full || ''}</div>
+            </a>
+            <div style="font-size:0.9em;color:#555;">${staff.role || ''}</div>
+          </div>
+        `).join('') || '-'
+        }
+      </div>
+    </div>
+  `;
+  // di akhir fungsi:
+  updateHtmlOutput();
+}
+
+function renderCharacterList(data) {
+  const container = document.getElementById('character-list');
+  if (!container) return;
+  if (!data || !Array.isArray(data)) {
+    container.innerHTML = '<div>No data found.</div>';
+    return;
+  }
+  container.innerHTML = data.map(item => {
+    const karakter = item.node || {};
+    const pengisi = (item.voiceActors && item.voiceActors[0]) || {};
+    return `
+      <div class="role-card">
+        <div class="character">
+          <a href="https://anilist.co/character/${karakter.id}" target="_blank">
+            <img class="cover-img" src="${getImageUrl(karakter)}" alt="${karakter.name?.full || ''}">
+          </a>
+          <div class="name">${karakter.name?.full || ''}</div>
+          <div class="role">${item.role || ''}</div>
+        </div>
+        <div class="staff">
+          ${pengisi.id ? `
+          <a href="https://anilist.co/staff/${pengisi.id}" target="_blank">
+            <img class="cover-img" src="${getImageUrl(pengisi)}" alt="${pengisi.name?.full || ''}">
+          </a>
+          <div class="name">${pengisi.name?.full || ''}</div>
+          <div class="role">${pengisi.languageV2 || ''}</div>
+          ` : '<div class="name">No VA</div>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+  // di akhir fungsi:
+  updateHtmlOutput();
+}
+
+// Tombol copy ke clipboard
+document.getElementById('copy-html-btn').addEventListener('click', function() {
+  const textarea = document.getElementById('html-output');
+  textarea.select();
+  textarea.setSelectionRange(0, 99999);
+  document.execCommand('copy');
+});
+</script>
+<script src="html_to_json_converter.js"></script>
+</body>
+</html>

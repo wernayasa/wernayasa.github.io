@@ -1,0 +1,16 @@
+[
+  {
+    "img": "https://s4.anilist.co/file/anilistcdn/character/large/b130713-TgLx8rgtGpXV.png",
+    "name": "Maki Oze",
+    "role": "MAIN",
+    "voice_actors": [
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n135200-puheykQEE9s6.png",
+        "name": "Saeko Kamijou",
+        "language": "JAPANESE"
+      }
+      // ...tambahkan VA lain...
+    ]
+  }
+  // ...tambahkan character lain sesuai kebutuhan...
+]

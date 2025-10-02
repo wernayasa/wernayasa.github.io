@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>/*<![CDATA[*/
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        fontFamily: {
+          'overpass': ['Overpass', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI'],
+        },
+        extend: {
+          colors: {
+            accent: '#451184',
+          },
+          container: {
+      	  center: true,
+          padding: {
+                DEFAULT: '0',
+                sm: '20px',
+                lg: '30px',
+                xl: '30px',
+                '2xl': '100px',
+              },
+      screens: {
+                sm: '100%',   // Full width on small screens
+                md: '768px',  // Custom width for medium screens
+                lg: '1024px', // Custom width for large screens
+                xl: '1140px', // Custom width for extra-large screens
+                '2xl': '1400px', // Add a custom width for 2xl screens
+              },
+		}
+      }
+    }
+    /*]]>*/</script>
+    <style type="text/tailwindcss">
+      @layer components {
+        .results.covers {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+          gap: 25px 20px;
+          justify-content: center;
+          padding: 0 1.25rem;
+        }
+
+        @media (max-width: 640px) {
+          .results.covers {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 20px 12px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .results.covers {
+            grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+            gap: 25px 20px;
+          }
+        }
+
+        @media (max-width: 1024px) {
+          .results.covers {
+            grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+            gap: 25px 20px;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="text-3xl font-bold underline text-clifford">
+      Hello world!
+    </h1>
+  </body>
+</html>

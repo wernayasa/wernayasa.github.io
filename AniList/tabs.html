@@ -1,0 +1,176 @@
+<div class="flex self-end justify-evenly justify-self-center max-w-[800px] pt-[10px] w-full text-xs text-[rgb(var(--color-text-lighter))]">
+  <button id="overview" class="link p-[15px]">Overview</button>
+  <button id="characters" class="link p-[15px]">Characters</button>
+  <button id="staff" class="link p-[15px]">Staff</button>
+  <button id="stats" class="link p-[15px]">Stats</button>
+  <button id="social" class="link p-[15px]">Social</button>
+</div>
+
+<div id="tab-content">
+  <!-- Konten tab akan dirender di sini oleh JavaScript -->
+</div>
+
+<!-- Inline data.js di sini -->
+<script src="data.js"></script>
+
+<script>
+// Fungsi untuk mengambil data JSON
+async function fetchData() {
+  // langsung return data dari variabel global
+  return {
+    staff: STAFF_DATA,
+    characters: CHARACTERS_DATA
+  };
+}
+
+// Fungsi render staff
+function renderStaff(staffList, limit) {
+  return staffList.slice(0, limit).map(staff => `
+    <div class="staff">
+      <img src="${staff.img}" alt="${staff.name}" style="width: 100px; height: auto;" />
+      <p><strong>Staff:</strong> ${staff.name} - ${staff.role}</p>
+    </div>
+  `).join('');
+}
+
+// Tambahkan dropdown filter sebelum render character list
+function renderLanguageFilter(selectedLang) {
+  const languages = [
+    { code: "GERMAN", label: "German" },
+    { code: "JAPANESE", label: "Japanese" },
+    { code: "ENGLISH", label: "English" },
+    { code: "ITALIAN", label: "Italian" },
+    { code: "SPANISH", label: "Spanish" },
+    { code: "PORTUGUESE", label: "Portuguese" }
+  ];
+  return `
+  <div class="mb-4 flex justify-end relative">
+    <button id="dropdownLanguageButton" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 text-center inline-flex items-center" type="button">
+      ${languages.find(l => l.code === selectedLang)?.label || "Japanese"}
+      <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+    </button>
+    <div id="dropdownLanguage" class="hidden absolute right-0 z-10 bg-white divide-y divide-gray-100 rounded-lg shadow w-44">
+      <ul class="py-2 text-sm text-gray-700">
+        ${languages.map(lang => `
+          <li>
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100" data-lang="${lang.code}">${lang.label}</a>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  </div>
+  `;
+}
+
+// Ubah renderCharacters agar menerima selectedLang
+function renderCharacters(charList, limit, selectedLang) {
+  return charList.slice(0, limit).map(char => {
+    // Filter voice actors sesuai bahasa
+    let vas = char.voice_actors;
+    if (selectedLang && selectedLang !== "ALL") {
+      vas = vas.filter(va => va.language === selectedLang);
+    }
+    return `
+    <figure class="character">
+  <img src="${char.img}" alt="${char.name}" style="width: 100px; height: auto;" />
+  <figcaption>
+    <p><strong>Character:</strong> ${char.name}</p>
+    <p><strong>Role:</strong> ${char.role}</p>
+    <div class="voice-actors">
+      <h4>Voice Actors:</h4>
+      ${vas.length > 0 ? vas.map(va => `
+        <figure class="voice-actor">
+          <img src="${va.img}" alt="${va.name}" style="width: 80px; height: auto;" />
+          <figcaption>
+            <p class="va_name"><strong>${va.name}</strong></p>
+            <p class="va_language">${va.language}</p>
+          </figcaption>
+        </figure>
+      `).join('') : '<p class="text-gray-400">No voice actor for this language.</p>'}
+    </div>
+  </figcaption>
+</figure>
+    `;
+  }).join('');
+}
+
+// Fungsi render tab
+function renderTab(tab, data, selectedLang = "JAPANESE") {
+  if (tab === 'overview') {
+    return `
+      <h2>Characters</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3">${renderCharacters(data.characters, 6, selectedLang)}</div>
+      <h2>Staff</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3">${renderStaff(data.staff, 3)}</div>
+    `;
+  }
+  if (tab === 'staff') {
+    return `
+      <h2>Staff</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3">${renderStaff(data.staff, data.staff.length)}</div>
+    `;
+  }
+  if (tab === 'characters') {
+    return `
+      ${renderLanguageFilter(selectedLang)}
+      <h2>Characters</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3">${renderCharacters(data.characters, data.characters.length, selectedLang)}</div>
+    `;
+  }
+  return '';
+}
+
+// Ganti event listener agar kompatibel dengan Turbo Hotwired
+function initTabs() {
+  fetchData().then(data => {
+    let currentTab = 'overview';
+    let selectedLang = "JAPANESE";
+    const tabContent = document.getElementById('tab-content');
+    function updateTab(tab, lang = selectedLang) {
+      currentTab = tab;
+      selectedLang = lang;
+      tabContent.innerHTML = renderTab(tab, data, lang);
+
+      // Custom dropdown logic hanya di tab characters
+      if (tab === 'characters') {
+        const btn = document.getElementById('dropdownLanguageButton');
+        const menu = document.getElementById('dropdownLanguage');
+        if (btn && menu) {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            menu.classList.toggle('hidden');
+          };
+          // Pilih bahasa
+          menu.querySelectorAll('a[data-lang]').forEach(a => {
+            a.onclick = (e) => {
+              e.preventDefault();
+              menu.classList.add('hidden');
+              updateTab(currentTab, a.getAttribute('data-lang'));
+            };
+          });
+          // Klik di luar dropdown menutup menu
+          document.addEventListener('click', function handler(ev) {
+            if (!menu.classList.contains('hidden')) {
+              menu.classList.add('hidden');
+              document.removeEventListener('click', handler);
+            }
+          });
+        }
+      }
+    }
+    updateTab(currentTab);
+
+    document.getElementById('overview').onclick = () => updateTab('overview', selectedLang);
+    document.getElementById('staff').onclick = () => updateTab('staff', selectedLang);
+    document.getElementById('characters').onclick = () => updateTab('characters', selectedLang);
+    // ...tambahkan handler untuk tab lain jika perlu...
+  });
+}
+
+// Turbo Hotwired: gunakan turbo:load, fallback ke DOMContentLoaded jika turbo tidak ada
+if (window.Turbo) {
+  document.addEventListener('turbo:load', initTabs);
+} else {
+  document.addEventListener('DOMContentLoaded', initTabs);
+}
+</script>

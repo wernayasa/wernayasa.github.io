@@ -1,0 +1,51 @@
+[
+  {
+    "img": "https://s4.anilist.co/file/anilistcdn/character/large/b130713-TgLx8rgtGpXV.png",
+    "name": "Maki Oze",
+    "role": "MAIN",
+    "voice_actors": [
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n135200-puheykQEE9s6.png",
+        "name": "Saeko Kamijou",
+        "language": "JAPANESE"
+      },
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n142049-vsDS95mN1KFg.jpg",
+        "name": "Sarah Roach",
+        "language": "ENGLISH"
+      },
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n176954-6ZX9X0hOU20I.jpg",
+        "name": "Bruna Nogueira",
+        "language": "PORTUGUESE"
+      }
+    ]
+  },
+  {
+    "img": "https://s4.anilist.co/file/anilistcdn/character/large/n120462-oSWdz2MhkbDE.png",
+    "name": "Shinra Kusakabe",
+    "role": "MAIN",
+    "voice_actors": [
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n123286-TfHayiK4hqbk.png",
+        "name": "Gakuto Kajiwara",
+        "language": "JAPANESE"
+      },
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n129490-L9VSJJtAl9wv.jpg",
+        "name": "Derick Snow",
+        "language": "ENGLISH"
+      },
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n197596-7Ym8Vmna0Ggu.jpg",
+        "name": "Bruno  Casemiro",
+        "language": "PORTUGUESE"
+      },
+      {
+        "img": "https://s4.anilist.co/file/anilistcdn/staff/large/n275524-QXw9NJboPw89.png",
+        "name": "Rodrigo Cagiano",
+        "language": "PORTUGUESE"
+      }
+    ]
+  },
+]
